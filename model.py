@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +8,6 @@ import torchvision
 
 from resnet import Resnet18
 from modules.bn import InPlaceABNSync as BatchNorm2d
-
 
 class ConvBNReLU(nn.Module):
     def __init__(self, in_chan, out_chan, ks=3, stride=1, padding=1, *args, **kwargs):
@@ -33,7 +31,6 @@ class ConvBNReLU(nn.Module):
             if isinstance(ly, nn.Conv2d):
                 nn.init.kaiming_normal_(ly.weight, a=1)
                 if not ly.bias is None: nn.init.constant_(ly.bias, 0)
-
 
 class BiSeNetOutput(nn.Module):
     def __init__(self, in_chan, mid_chan, n_classes, *args, **kwargs):
@@ -64,7 +61,6 @@ class BiSeNetOutput(nn.Module):
                 nowd_params += list(module.parameters())
         return wd_params, nowd_params
 
-
 class AttentionRefinementModule(nn.Module):
     def __init__(self, in_chan, out_chan, *args, **kwargs):
         super(AttentionRefinementModule, self).__init__()
@@ -89,7 +85,6 @@ class AttentionRefinementModule(nn.Module):
                 nn.init.kaiming_normal_(ly.weight, a=1)
                 if not ly.bias is None: nn.init.constant_(ly.bias, 0)
 
-
 class ContextPath(nn.Module):
     def __init__(self, *args, **kwargs):
         super(ContextPath, self).__init__()
@@ -111,11 +106,13 @@ class ContextPath(nn.Module):
 
         avg = F.avg_pool2d(feat32, feat32.size()[2:])
         avg = self.conv_avg(avg)
+        # ????
         avg_up = F.interpolate(avg, (H32, W32), mode='nearest')
 
         feat32_arm = self.arm32(feat32)
         feat32_sum = feat32_arm + avg_up
         feat32_up = F.interpolate(feat32_sum, (H16, W16), mode='nearest')
+        # ???
         feat32_up = self.conv_head32(feat32_up)
 
         feat16_arm = self.arm16(feat16)
@@ -201,11 +198,15 @@ class FeatureFusionModule(nn.Module):
         fcat = torch.cat([fsp, fcp], dim=1)
         feat = self.convblk(fcat)
         atten = F.avg_pool2d(feat, feat.size()[2:])
+        # ？
         atten = self.conv1(atten)
+        # ？
         atten = self.relu(atten)
+        # ？
         atten = self.conv2(atten)
         atten = self.sigmoid(atten)
         feat_atten = torch.mul(feat, atten)
+        # ？
         feat_out = feat_atten + feat
         return feat_out
 
@@ -225,7 +226,6 @@ class FeatureFusionModule(nn.Module):
             elif isinstance(module, BatchNorm2d):
                 nowd_params += list(module.parameters())
         return wd_params, nowd_params
-
 
 class BiSeNet(nn.Module):
     def __init__(self, n_classes, *args, **kwargs):
@@ -247,7 +247,7 @@ class BiSeNet(nn.Module):
         feat_out = self.conv_out(feat_fuse)
         feat_out16 = self.conv_out16(feat_cp8)
         feat_out32 = self.conv_out32(feat_cp16)
-
+        
         feat_out = F.interpolate(feat_out, (H, W), mode='bilinear', align_corners=True)
         feat_out16 = F.interpolate(feat_out16, (H, W), mode='bilinear', align_corners=True)
         feat_out32 = F.interpolate(feat_out32, (H, W), mode='bilinear', align_corners=True)
@@ -271,7 +271,6 @@ class BiSeNet(nn.Module):
                 nowd_params += child_nowd_params
         return wd_params, nowd_params, lr_mul_wd_params, lr_mul_nowd_params
 
-
 if __name__ == "__main__":
     net = BiSeNet(19)
     net.cuda()
@@ -279,5 +278,5 @@ if __name__ == "__main__":
     in_ten = torch.randn(16, 3, 640, 480).cuda()
     out, out16, out32 = net(in_ten)
     print(out.shape)
-
+    
     net.get_params()
