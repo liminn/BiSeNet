@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 
-
 from logger import setup_logger
 from model import BiSeNet
 from cityscapes import CityScapes
@@ -22,11 +21,9 @@ import time
 import datetime
 import argparse
 
-
 respth = './res'
 if not osp.exists(respth): os.makedirs(respth)
 logger = logging.getLogger()
-
 
 def parse_args():
     parse = argparse.ArgumentParser()
@@ -160,7 +157,6 @@ def train():
     state = net.module.state_dict() if hasattr(net, 'module') else net.state_dict()
     if dist.get_rank()==0: torch.save(state, save_pth)
     logger.info('training done, model saved to: {}'.format(save_pth))
-
 
 if __name__ == "__main__":
     train()
